@@ -14,7 +14,6 @@ use program_structure::{
     report::{ReportCollection, Report},
 };
 
-#[cfg(test)]
 use program_structure::template_library::TemplateLibrary;
 
 use crate::{
@@ -77,7 +76,6 @@ impl AnalysisRunner {
     }
 
     /// Convenience method used to generate a runner for testing purposes.
-    #[cfg(test)]
     pub fn with_src(mut self, file_contents: &[&str]) -> Self {
         use parser::parse_definition;
 
