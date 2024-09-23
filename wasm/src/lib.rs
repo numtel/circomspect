@@ -1,21 +1,13 @@
 use wasm_bindgen::prelude::*;
 use program_analysis::analysis_runner::AnalysisRunner;
+extern crate console_error_panic_hook;
 
 use program_structure::constants::Curve;
-use program_structure::report::Report;
-use program_structure::report::MessageCategory;
 use program_structure::writers::{CachedStdoutWriter};
 
-// Expose this function to JavaScript with wasm-bindgen
 #[wasm_bindgen]
-pub fn analyze_code(file_content: &str, output_level: String, curve: String, verbose: bool) -> String {
-    // Set up message category and curve
-    let output_level: MessageCategory = match output_level.as_str() {
-        "INFO" => MessageCategory::Info,
-        "WARNING" => MessageCategory::Warning,
-        "ERROR" => MessageCategory::Error,
-        _ => MessageCategory::Info,
-    };
+pub fn analyze_code(file_content: &str, curve: String) -> String {
+    console_error_panic_hook::set_once();
 
     let curve = match curve.as_str() {
         "BN254" => Curve::Bn254,
@@ -25,14 +17,16 @@ pub fn analyze_code(file_content: &str, output_level: String, curve: String, ver
     };
 
     // Set up analysis runner, passing the file contents directly
-    let runner = AnalysisRunner::new(curve)
+    let mut runner = AnalysisRunner::new(curve)
         .with_src(&[file_content]);
+    let mut stdout_writer = CachedStdoutWriter::new(true);
 
-    "foo".to_string()
-}
+    // Analyze functions and templates in user provided input files.
+    runner.analyze_functions(&mut stdout_writer, true);
+    runner.analyze_templates(&mut stdout_writer, true);
 
-/// Filters reports based on message category.
-fn filter_by_level(report: &Report, output_level: &MessageCategory) -> bool {
-    report.category() >= output_level
+    let json_string = serde_json::to_string(&stdout_writer.reports()).unwrap();
+
+    json_string
 }
 
