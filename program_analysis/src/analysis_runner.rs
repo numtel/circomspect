@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 
 use parser::ParseResult;
+use parser::syntax_sugar_remover;
 
 use program_structure::{
     writers::{LogWriter, ReportWriter},
@@ -75,7 +76,33 @@ impl AnalysisRunner {
         (self, reports)
     }
 
+    pub fn with_src_wasm(mut self, file_contents: &[&str]) -> (Self, ReportCollection) {
+        use parser::parse_definition;
+
+        let mut library_contents = HashMap::new();
+        let mut file_library = FileLibrary::default();
+        for (file_index, file_source) in file_contents.iter().enumerate() {
+            let file_name = format!("file-{file_index}.circom");
+            let file_id = file_library.add_file(file_name, file_source.to_string(), true);
+            library_contents.insert(file_id, vec![parse_definition(file_source).unwrap()]);
+        }
+        let template_library = TemplateLibrary::new(library_contents, file_library.clone());
+        let mut reports = ReportCollection::new();
+        let (new_templates, new_functions) = syntax_sugar_remover::remove_syntactic_sugar(
+            &template_library.templates,
+            &template_library.functions,
+            &template_library.file_library,
+            &mut reports,
+        );
+        self.template_asts = new_templates;
+        self.function_asts = new_functions;
+        self.file_library = template_library.file_library;
+
+        (self, reports)
+    }
+
     /// Convenience method used to generate a runner for testing purposes.
+    #[cfg(test)]
     pub fn with_src(mut self, file_contents: &[&str]) -> Self {
         use parser::parse_definition;
 
