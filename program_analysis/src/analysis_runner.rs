@@ -76,7 +76,8 @@ impl AnalysisRunner {
         (self, reports)
     }
 
-    pub fn with_src_wasm(mut self, file_contents: &[&str]) -> (Self, ReportCollection) {
+    /// Convenience method used for WASM build target.
+    pub fn with_src_desugar(mut self, file_contents: &[&str]) -> (Self, ReportCollection) {
         use parser::parse_definition;
 
         let mut library_contents = HashMap::new();
@@ -87,18 +88,18 @@ impl AnalysisRunner {
             library_contents.insert(file_id, vec![parse_definition(file_source).unwrap()]);
         }
         let template_library = TemplateLibrary::new(library_contents, file_library.clone());
-        let mut reports = ReportCollection::new();
+        let mut sugar_reports = ReportCollection::new();
         let (new_templates, new_functions) = syntax_sugar_remover::remove_syntactic_sugar(
             &template_library.templates,
             &template_library.functions,
             &template_library.file_library,
-            &mut reports,
+            &mut sugar_reports,
         );
         self.template_asts = new_templates;
         self.function_asts = new_functions;
         self.file_library = template_library.file_library;
 
-        (self, reports)
+        (self, sugar_reports)
     }
 
     /// Convenience method used to generate a runner for testing purposes.

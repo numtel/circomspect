@@ -29,8 +29,8 @@ pub fn analyze_code(file_content: &JsValue, curve: String) -> String {
     };
 
     // Set up analysis runner, passing the file contents directly
-    let (mut runner, reports) = AnalysisRunner::new(curve)
-        .with_src_wasm(&slice);
+    let (mut runner, sugar_reports) = AnalysisRunner::new(curve)
+        .with_src_desugar(&slice);
     let mut stdout_writer = CachedStdoutWriter::new(true);
 
     // Analyze functions and templates in user provided input files.
@@ -38,7 +38,7 @@ pub fn analyze_code(file_content: &JsValue, curve: String) -> String {
     runner.analyze_templates(&mut stdout_writer, true);
 
     let json_analysis = serde_json::to_string(&stdout_writer.reports()).unwrap();
-    let json_sugar_removal_errors = serde_json::to_string(&reports).unwrap();
+    let json_sugar_removal_errors = serde_json::to_string(&sugar_reports).unwrap();
     let result = format!("[{},{}]", json_analysis, json_sugar_removal_errors);
 
     result
